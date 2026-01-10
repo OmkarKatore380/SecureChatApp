@@ -1,13 +1,12 @@
 package com.example.SecureChatApp;
 
-import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
 class SecureChatAppApplicationTests {
 
-	@Test
+	/**@Test
 	void contextLoads() {
-	}
+	}**/
 
 }

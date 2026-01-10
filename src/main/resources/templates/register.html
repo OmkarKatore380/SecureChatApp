@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { background: #000; color: #00FF41; font-family: 'Courier New', monospace; padding: 50px; text-align: center; }
+        .box { border: 1px solid #00FF41; padding: 20px; display: inline-block; background: #050505; }
+        input { background: #000; border: 1px solid #00FF41; color: #00FF41; padding: 10px; margin: 10px; width: 250px;}
+        button { background: #004d00; color: #fff; border: 1px solid #00FF41; padding: 10px 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>NEW RECRUIT REGISTRATION</h2>
+        <input type="text" id="name" placeholder="YOUR DISPLAY NAME (e.g. Akash)">
+        <br>
+        <input type="password" id="pass" placeholder="PASSWORD">
+        <br>
+        <button onclick="register()">GENERATE TACTICAL ID</button>
+        <h1 id="resultID" style="color: #fff;"></h1>
+        <p><a href="/login" style="color: #00FF41;">GO TO LOGIN</a></p>
+    </div>
+
+    <script>
+        function register() {
+            const name = document.getElementById('name').value;
+            const password = document.getElementById('pass').value;
+            if(!name || !password) { alert("All fields required!"); return; }
+
+            fetch('/api/auth/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name, password: password})
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('resultID').innerText = "YOUR ID: " + data.militaryId;
+                alert("ID GENERATED FOR " + data.displayName + ": " + data.militaryId);
+            })
+            .catch(err => alert("Error connecting to server."));
+        }
+    </script>
+</body>
+</html>

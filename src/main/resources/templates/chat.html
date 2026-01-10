@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>SECURE TACTICAL COMM-LINK</title>
+    <style>
+        body { background: #000; color: #00FF41; font-family: 'Courier New', monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; padding: 20px;}
+        .header { border-bottom: 2px solid #004d00; padding-bottom: 10px; margin-bottom: 20px; }
+        .main-container { display: flex; gap: 20px; flex-grow: 1; overflow: hidden; }
+        .directory { width: 250px; border: 1px solid #00FF41; background: #050505; padding: 15px; overflow-y: auto; }
+        .user-link { cursor: pointer; padding: 10px; border-bottom: 1px dotted #004d00; }
+        .user-link:hover { background: #004d00; }
+        .terminal-box { flex-grow: 1; border: 1px solid #00FF41; background: #050505; padding: 15px; overflow-y: auto; }
+        .input-area { margin-top: 20px; display: flex; gap: 10px; }
+        input { background: #000; border: 1px solid #00FF41; color: #00FF41; padding: 12px; }
+        button { background: #004d00; color: #fff; border: 1px solid #00FF41; padding: 0 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>SECURE TACTICAL COMM-LINK v1.0</h2>
+        <div>LOCAL ID: <span id="myIdDisplay" th:text="${myMilitaryId}">...</span></div>
+    </div>
+    <div class="main-container">
+        <div class="directory">
+            <div style="font-weight: bold; border-bottom: 1px solid #00FF41; margin-bottom: 10px;">ACTIVE AGENTS</div>
+            <div id="userList">Fetching directory...</div>
+        </div>
+        <div class="terminal-box" id="chatArea"></div>
+    </div>
+    <div class="input-area">
+        <input type="text" id="targetId" placeholder="TARGET ID" readonly>
+        <input type="text" id="msgInput" placeholder="SELECT AN AGENT">
+        <button onclick="transmit()">TRANSMIT</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script>
+        var stompClient = null;
+        var myId = document.getElementById('myIdDisplay').innerText.trim();
+
+        function connect() {
+            var socket = new SockJS('/chat');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function () {
+                stompClient.subscribe('/topic/user/' + myId, function (msg) {
+                    var data = JSON.parse(msg.body);
+                    renderMessage(data.sender, data.content, data.timeStamp);
+                });
+                loadDirectory();
+            });
+        }
+
+        function loadDirectory() {
+            fetch('/api/auth/users').then(res => res.json()).then(users => {
+                const list = document.getElementById('userList');
+                list.innerHTML = '';
+                users.forEach(user => {
+                    if(user.id !== myId) {
+                        let item = document.createElement('div');
+                        item.className = 'user-link';
+                        item.innerHTML = `> ${user.name} <br><small>ID: ${user.id}</small>`;
+                        item.onclick = () => { document.getElementById('targetId').value = user.id; };
+                        list.appendChild(item);
+                    }
+                });
+            });
+        }
+
+        function transmit() {
+            var receiver = document.getElementById('targetId').value;
+            var text = document.getElementById('msgInput').value;
+            if(!receiver || !text) return;
+            var msg = { 'sender': myId, 'receiverId': receiver, 'content': text };
+            stompClient.send("/app/private-message", {}, JSON.stringify(msg));
+            renderMessage("ME", text, new Date());
+            document.getElementById('msgInput').value = "";
+        }
+
+        function renderMessage(sender, content, time) {
+            var area = document.getElementById('chatArea');
+            area.innerHTML += `<div>[${new Date(time).toLocaleTimeString()}] <strong>${sender}</strong>: ${content}</div>`;
+            area.scrollTop = area.scrollHeight;
+        }
+        connect();
+    </script>
+</body>
+</html>
